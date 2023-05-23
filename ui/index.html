@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Expense Report</title>
+    <link rel="stylesheet" type="text/css" href="styles.css">
+</head>
+<body>
+    <form id="expenseForm">
+        <div id="message" class="message"></div>
+        <input type="number" id="amount" placeholder="Amount" step="0.01">
+        <input type="date" id="date" placeholder="Date">
+        <button id="submitButton" type="submit" class="button">Submit</button>
+    </form>
+    <div id="overlay" style="display: none;">
+        <div id="loading" class="lds-ring"><div></div><div></div><div></div><div></div></div>
+    </div>
+    
+    <div id="expenseReports" class="center">
+        <button id="expandButton" class="button">Show Expense Reports</button>
+        <div id="reportList" style="display: none;">
+            <!-- The expense reports will be dynamically added here -->
+        </div>
+    </div>
+    
+
+    <script src="main.js"></script>
+</body>
+</html>
