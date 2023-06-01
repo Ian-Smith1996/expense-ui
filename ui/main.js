@@ -1,5 +1,36 @@
+// Global array to store the expenses.
 let expenses = [];
 
+// Async method that runs an interval every 10 seconds to update the state of the expenses.
+async function run() {
+    // Send a request to localhost:8098/query every 10 seconds to update the state of the expenses.
+    // Also rerender the reports.
+    setInterval(() => {
+        if (expenses.length === 0) return;
+        expenses.forEach((expense, index) => {
+            fetch('http://localhost:8098/query', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ expenseID: expense.expenseID })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.state.toUpperCase() == "ACCEPTED" || data.state.toUpperCase() == "REJECTED") {
+                    // Remove the expense from the list at index
+                    expenses.splice(index, 1);
+                }
+                expense.state = data.state;
+            }).catch((error) => {
+                console.error('Error:', error);
+            });
+        });
+        renderReports();
+    }, 10000);
+}
+
+run();
+
+// Event listener for the expense form when it is submitted
 document.getElementById("expenseForm").addEventListener("submit", function(e) {
     e.preventDefault();
 
@@ -10,8 +41,8 @@ document.getElementById("expenseForm").addEventListener("submit", function(e) {
     const date = document.getElementById("date").value;
 
     const expense = {
-        amount: parseFloat(amount),
-        date: date
+        amount: amount,
+        date: date,
     };
 
     // Display the overlay and disable the submit button
@@ -34,7 +65,7 @@ document.getElementById("expenseForm").addEventListener("submit", function(e) {
         headers: {
             'Content-Type': 'application/json',
         },
-        body: JSON.stringify(expense),
+        body: `{"amount": ${expense.amount}, "date": "${expense.date}"}`, //JSON.stringify(expense),
     })
     .then(response => response.json())
     .then(data => {
@@ -63,6 +94,7 @@ document.getElementById("expenseForm").addEventListener("submit", function(e) {
     });
 });
 
+// Ran when the user wants to view the details of an expense
 function showExpenseDetails(index) {
     const expense = expenses[index];
     const detailsDiv = document.createElement('div');
@@ -93,13 +125,14 @@ function showExpenseDetails(index) {
     document.getElementById('reportList').appendChild(detailsDiv);
 }
 
-
+// Event listener for the expand button. Toggles the display of the report list.
 document.getElementById('expandButton').addEventListener('click', function(e) {
     const reportList = document.getElementById('reportList');
     reportList.style.display = reportList.style.display === 'none' ? 'block' : 'none';
     renderReports();
 });
 
+// Render the report to display the most current expense details
 function renderReports() {
     const reportsContainer = document.getElementById('reportList');
     reportsContainer.innerHTML = ''; // Clear the container

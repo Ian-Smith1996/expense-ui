@@ -9,10 +9,10 @@ import (
 )
 
 type ExpenseReport struct {
-	ExpenseID string  `json:"expenseID"`
-	Amount    float64 `json:"amount"`
-	Date      string  `json:"date"`
-	State     string  `json:"state,omitempty"`
+	ExpenseID string `json:"expenseID"`
+	Amount    int    `json:"amount"`
+	Date      string `json:"date"`
+	State     string `json:"state,omitempty"`
 }
 
 type ExpenseResponse struct {
@@ -84,11 +84,11 @@ func QueryExpense(w http.ResponseWriter, r *http.Request) {
 	}
 	expense, ok := expenseData[expenseID.ExpenseID]
 
-	if ok == false {
+	if !ok {
 		http.Error(w, "Expense not found for id: "+expenseID.ExpenseID, http.StatusNotFound)
 		return
 	}
-	expense.State = "queried"
+	expense.State = "TODO"
 	response := ExpenseResponse{
 		State: expense.State,
 	}
@@ -99,7 +99,6 @@ func QueryExpense(w http.ResponseWriter, r *http.Request) {
 func main() {
 	http.HandleFunc("/create", CreateExpenseReport)
 	http.HandleFunc("/query", QueryExpense)
-	fmt.Println(expenseData["test"])
 	fmt.Println("Listening...")
 	http.ListenAndServe(":8098", nil)
 }
