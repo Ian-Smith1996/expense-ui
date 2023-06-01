@@ -60,15 +60,18 @@ func CreateExpenseReport(w http.ResponseWriter, r *http.Request) {
 
 	var newExpense ExpenseReport
 
+	// Decode the request body into an ExpenseReport object
 	err = json.NewDecoder(r.Body).Decode(&newExpense)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
+	// Set the ExpenseID and State fields
 	newExpense.ExpenseID = time.Now().Format(time.RFC3339)
 	newExpense.State = "created"
 
+	// Store the ExpenseReport object in expenseData while being async safe
 	mutex.Lock()
 	expenseData[newExpense.ExpenseID] = newExpense
 	fmt.Println("Received and created expense with ID " + expenseData[newExpense.ExpenseID].ExpenseID)
@@ -81,7 +84,6 @@ func CreateExpenseReport(w http.ResponseWriter, r *http.Request) {
 		ID:        "expense_" + newExpense.ExpenseID,
 		TaskQueue: "expense",
 	}
-
 	we, err := c.ExecuteWorkflow(context.Background(), workflowOptions, expense.SampleExpenseWorkflow, newExpense)
 	if err != nil {
 		log.Fatalln("Unable to execute workflow", err)
@@ -93,7 +95,7 @@ func CreateExpenseReport(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-
+	// Start a HTTP server the listens on port 8098 and creates a new expense report when it receives a POST request to `/create
 	http.HandleFunc("/create", CreateExpenseReport)
 	fmt.Println("Listening...")
 	http.ListenAndServe(":8098", nil)

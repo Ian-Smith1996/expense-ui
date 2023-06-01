@@ -65,7 +65,7 @@ document.getElementById("expenseForm").addEventListener("submit", function(e) {
         headers: {
             'Content-Type': 'application/json',
         },
-        body: `{"amount": ${expense.amount}, "date": "${expense.date}"}`, //JSON.stringify(expense),
+        body: `{"amount": ${expense.amount}, "date": "${expense.date}"}`,
     })
     .then(response => response.json())
     .then(data => {
