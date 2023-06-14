@@ -6,7 +6,7 @@ import (
 	"go.temporal.io/sdk/workflow"
 )
 
-func ExpenseWorkflow(ctx workflow.Context, expenseID string) (result string, err error) {
+func CreateExpenseWorkflow(ctx workflow.Context, expenseID string) (result string, err error) {
 	// step 1, create new expense report
 	ao := workflow.ActivityOptions{
 		StartToCloseTimeout: 10 * time.Second,

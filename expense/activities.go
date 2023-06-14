@@ -9,9 +9,12 @@ import (
 	"net/http"
 
 	//"net/url"
-	//new change in branch
 
 	"go.temporal.io/sdk/activity"
+)
+
+var (
+	expenseServerPort = "8098"
 )
 
 func CreateExpenseActivity(ctx context.Context, expenseID string) error {
@@ -19,7 +22,7 @@ func CreateExpenseActivity(ctx context.Context, expenseID string) error {
 		return errors.New("expense id is empty")
 	}
 
-	resp, err := http.Get("8098" + "/create?is_api_call=true&id=" + expenseID)
+	resp, err := http.Get(":" + expenseServerPort + "/create?is_api_call=true&id=" + expenseID)
 	if err != nil {
 		return err
 	}

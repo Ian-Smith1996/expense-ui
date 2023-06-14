@@ -36,7 +36,7 @@ var (
 
 func main() {
 	var err error
-	temporal, err = client.NewClient(client.Options{})
+	temporal, err = client.Dial(client.Options{})
 	if err != nil {
 		log.Fatalln("unable to create Temporal client", err)
 	}
@@ -72,7 +72,7 @@ func CreateExpenseHandler(c *gin.Context) {
 		TaskQueue: "expense",
 	}
 
-	we, err := temporal.ExecuteWorkflow(context.Background(), workflowOptions, expense.ExpenseWorkflow, newExpense)
+	we, err := temporal.ExecuteWorkflow(context.Background(), workflowOptions, expense.CreateExpenseWorkflow, newExpense)
 	if err != nil {
 		log.Fatalln("Unable to execute workflow", err)
 	}
