@@ -2,14 +2,13 @@ package main
 
 import (
 	"context"
-	"encoding/json"
-	"fmt"
 	"log"
 	"my_module/expense"
 	"net/http"
 	"sync"
 	"time"
 
+	"github.com/gin-gonic/gin"
 	"go.temporal.io/sdk/client"
 )
 
@@ -20,8 +19,8 @@ import (
 // - State: the state of the expense report. It can be "created", "approved", or "rejected".
 type ExpenseReport struct {
 	ExpenseID string  `json:"expenseID"`
-	Amount    float64 `json:"amount"`
-	Date      string  `json:"date"`
+	Amount    float64 `json:"amount,omitempty"`
+	Date      string  `json:"date,omitempty"`
 	State     string  `json:"state,omitempty"`
 }
 
@@ -29,74 +28,76 @@ type ExpenseReport struct {
 // - mutex: a mutex to protect the expenseData map
 // - expenseData: a map that stores the expense reports
 var (
+	HTTPPort    = "8097"
 	mutex       sync.Mutex
 	expenseData = make(map[string]ExpenseReport)
+	temporal    client.Client
 )
 
-// CreateExpenseReport is the handler for the /create endpoint. It should receive a POST request with a JSON body that contains
-// an ExpenseReport object. It will store the ExpenseReport object in expenseData and return the ExpenseID in the response if it
-// is successful. Otherwise, it will send an error response with a 500 error code. If the ExpenseReport is saved successfully,
-// it will start a workflow: CreateExpenseWorkflow using temporal.
-func CreateExpenseReport(w http.ResponseWriter, r *http.Request) {
-	// Create a temporal client and defer closing it
-	c, err := client.NewClient(client.Options{
-		HostPort: client.DefaultHostPort,
-	})
+func main() {
+	var err error
+	temporal, err = client.NewClient(client.Options{})
 	if err != nil {
-		log.Fatalln("Unable to create Temporal client", err)
-		return
+		log.Fatalln("unable to create Temporal client", err)
 	}
-	defer c.Close()
+	log.Println("Temporal client connected")
 
-	// Handling CORS here
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.Header().Set("Access-Control-Allow-Methods", "POST")
-	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+	router := gin.Default()
+	router.POST("/expense", CreateExpenseHandler)
+	router.GET("/expense/:userid", QueryExpenseHandler)
 
-	if r.Method == "OPTIONS" {
-		w.WriteHeader(http.StatusOK)
-		return
-	}
+	router.Run("localhost:" + HTTPPort)
+}
 
+// CreateExpenseHandler is the handler for the /create endpoint. It creates a new expense report by starting the CreateExpense workflow using temporal. Once the expense has been
+// created, it return the expenseID to the client in JSON format. This handler uses gin to communicate with the client.
+func CreateExpenseHandler(c *gin.Context) {
 	var newExpense ExpenseReport
 
-	// Decode the request body into an ExpenseReport object
-	err = json.NewDecoder(r.Body).Decode(&newExpense)
+	err := c.BindJSON(&newExpense)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	// Set the ExpenseID and State fields
 	newExpense.ExpenseID = time.Now().Format(time.RFC3339)
 	newExpense.State = "created"
 
-	// Store the ExpenseReport object in expenseData while being async safe
 	mutex.Lock()
 	expenseData[newExpense.ExpenseID] = newExpense
-	fmt.Println("Received and created expense with ID " + expenseData[newExpense.ExpenseID].ExpenseID)
 	mutex.Unlock()
 
-	response := "{\"expenseID\":\"" + newExpense.ExpenseID + "\"}"
-
-	// Start a workflow
 	workflowOptions := client.StartWorkflowOptions{
-		ID:        "expense_" + newExpense.ExpenseID,
+		ID:        "createExpense_" + newExpense.ExpenseID,
 		TaskQueue: "expense",
 	}
-	we, err := c.ExecuteWorkflow(context.Background(), workflowOptions, expense.SampleExpenseWorkflow, newExpense)
+
+	we, err := temporal.ExecuteWorkflow(context.Background(), workflowOptions, expense.ExpenseWorkflow, newExpense)
 	if err != nil {
 		log.Fatalln("Unable to execute workflow", err)
 	}
+
 	log.Println("Started workflow", "WorkflowID", we.GetID(), "RunID", we.GetRunID())
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	c.JSON(http.StatusOK, gin.H{"expenseID": newExpense.ExpenseID})
+
 }
 
-func main() {
-	// Start a HTTP server the listens on port 8098 and creates a new expense report when it receives a POST request to `/create
-	http.HandleFunc("/create", CreateExpenseReport)
-	fmt.Println("Listening...")
-	http.ListenAndServe(":8098", nil)
+// QueryExpenseHandler is the handler for the /query endpoint. It uses gin to extract the id from the URL then queries the running workflow with that ID for it's state.
+// It then sends the state back to the client as a JSON.
+func QueryExpenseHandler(c *gin.Context) {
+	expenseID := c.Param("userid")
+
+	queryResult, err := temporal.QueryWorkflow(context.Background(), expenseID, "ExpenseState", "state")
+	if err != nil {
+		log.Fatalln("Unable to query workflow", err)
+	}
+
+	var state string
+	err = queryResult.Get(&state)
+	if err != nil {
+		log.Fatalln("Unable to get query result", err)
+	}
+
+	c.JSON(http.StatusOK, gin.H{"state": state})
 }
