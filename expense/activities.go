@@ -9,7 +9,6 @@ import (
 	"net/http"
 
 	//"net/url"
-	//new change in branch
 
 	"go.temporal.io/sdk/activity"
 )
