@@ -6,7 +6,7 @@ import (
 	"go.temporal.io/sdk/workflow"
 )
 
-func SampleExpenseWorkflow(ctx workflow.Context, expenseID string) (result string, err error) {
+func ExpenseWorkflow(ctx workflow.Context, expenseID string) (result string, err error) {
 	// step 1, create new expense report
 	ao := workflow.ActivityOptions{
 		StartToCloseTimeout: 10 * time.Second,
@@ -20,31 +20,31 @@ func SampleExpenseWorkflow(ctx workflow.Context, expenseID string) (result strin
 		return "", err
 	}
 
-	// step 2, wait for the expense report to be approved (or rejected)
-	ao = workflow.ActivityOptions{
-		StartToCloseTimeout: 10 * time.Minute,
-	}
-	ctx2 := workflow.WithActivityOptions(ctx, ao)
-	// Notice that we set the timeout to be 10 minutes for this sample demo. If the expected time for the activity to
-	// complete (waiting for human to approve the request) is longer, you should set the timeout accordingly so the
-	// Temporal system will wait accordingly. Otherwise, Temporal system could mark the activity as failure by timeout.
-	var status string
-	err = workflow.ExecuteActivity(ctx2, WaitForDecisionActivity, expenseID).Get(ctx2, &status)
-	if err != nil {
-		return "", err
-	}
+	// // step 2, wait for the expense report to be approved (or rejected)
+	// ao = workflow.ActivityOptions{
+	// 	StartToCloseTimeout: 10 * time.Minute,
+	// }
+	// ctx2 := workflow.WithActivityOptions(ctx, ao)
+	// // Notice that we set the timeout to be 10 minutes for this sample demo. If the expected time for the activity to
+	// // complete (waiting for human to approve the request) is longer, you should set the timeout accordingly so the
+	// // Temporal system will wait accordingly. Otherwise, Temporal system could mark the activity as failure by timeout.
+	// var status string
+	// err = workflow.ExecuteActivity(ctx2, WaitForDecisionActivity, expenseID).Get(ctx2, &status)
+	// if err != nil {
+	// 	return "", err
+	// }
 
-	if status != "APPROVED" {
-		logger.Info("Workflow completed.", "ExpenseStatus", status)
-		return "", nil
-	}
+	// if status != "APPROVED" {
+	// 	logger.Info("Workflow completed.", "ExpenseStatus", status)
+	// 	return "", nil
+	// }
 
-	// step 3, request payment to the expense
-	err = workflow.ExecuteActivity(ctx2, PaymentActivity, expenseID).Get(ctx2, nil)
-	if err != nil {
-		logger.Info("Workflow completed with payment failed.", "Error", err)
-		return "", err
-	}
+	// // step 3, request payment to the expense
+	// err = workflow.ExecuteActivity(ctx2, PaymentActivity, expenseID).Get(ctx2, nil)
+	// if err != nil {
+	// 	logger.Info("Workflow completed with payment failed.", "Error", err)
+	// 	return "", err
+	// }
 
 	logger.Info("Workflow completed with expense payment completed.")
 	return "COMPLETED", nil
