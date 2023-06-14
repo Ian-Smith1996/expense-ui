@@ -3,17 +3,11 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"my_module/types"
 	"net/http"
 	"sync"
 	"time"
 )
-
-type ExpenseReport struct {
-	ExpenseID string `json:"expenseID"`
-	Amount    int    `json:"amount"`
-	Date      string `json:"date"`
-	State     string `json:"state,omitempty"`
-}
 
 type ExpenseResponse struct {
 	ExpenseID string `json:"expenseID"`
@@ -26,7 +20,7 @@ type ExpenseQuery struct {
 
 var (
 	mutex       sync.Mutex
-	expenseData = make(map[string]ExpenseReport)
+	expenseData = make(map[string]types.ExpenseReport)
 )
 
 func CreateExpenseReport(w http.ResponseWriter, r *http.Request) {
@@ -40,7 +34,7 @@ func CreateExpenseReport(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var newExpense ExpenseReport
+	var newExpense types.ExpenseReport
 
 	err := json.NewDecoder(r.Body).Decode(&newExpense)
 	if err != nil {
@@ -74,7 +68,7 @@ func QueryExpense(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var expenseID ExpenseReport
+	var expenseID types.ExpenseReport
 	fmt.Println(r.Body)
 	err := json.NewDecoder(r.Body).Decode(&expenseID)
 	if err != nil {

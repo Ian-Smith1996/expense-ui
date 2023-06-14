@@ -60,7 +60,7 @@ document.getElementById("expenseForm").addEventListener("submit", function(e) {
         }
     }, 10000);
 
-    fetch('http://localhost:8097/create', {
+    fetch('http://localhost:8097/expense', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
