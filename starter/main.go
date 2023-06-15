@@ -4,45 +4,42 @@ import (
 	"context"
 	"log"
 	"my_module/expense"
+	"my_module/types"
 	"net/http"
-	"sync"
 	"time"
 
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"go.temporal.io/sdk/client"
 )
-
-// ExpenseReport is the struct that represents an expense report. It contains the following fields:
-// - ExpenseID: a unique identifier for the expense report
-// - Amount: the amount of the expense
-// - Date: the date of the expense
-// - State: the state of the expense report. It can be "created", "approved", or "rejected".
-type ExpenseReport struct {
-	ExpenseID string  `json:"expenseID"`
-	Amount    float64 `json:"amount,omitempty"`
-	Date      string  `json:"date,omitempty"`
-	State     string  `json:"state,omitempty"`
-}
 
 // Global variables
 // - mutex: a mutex to protect the expenseData map
 // - expenseData: a map that stores the expense reports
 var (
-	HTTPPort    = "8097"
-	mutex       sync.Mutex
-	expenseData = make(map[string]ExpenseReport)
-	temporal    client.Client
+	HTTPPort = "8097"
+	// mutex    sync.Mutex
+	temporal client.Client
 )
 
 func main() {
 	var err error
-	temporal, err = client.NewClient(client.Options{})
+	temporal, err = client.Dial(client.Options{})
 	if err != nil {
 		log.Fatalln("unable to create Temporal client", err)
 	}
 	log.Println("Temporal client connected")
 
 	router := gin.Default()
+	router.Use(cors.New(cors.Config{
+		AllowOrigins:     []string{"*"},
+		AllowMethods:     []string{"GET", "POST", "OPTIONS"},
+		AllowHeaders:     []string{"*"},
+		ExposeHeaders:    []string{"Content-Length"},
+		AllowCredentials: true,
+		MaxAge:           12 * time.Hour,
+	}))
+
 	router.POST("/expense", CreateExpenseHandler)
 	router.GET("/expense/:userid", QueryExpenseHandler)
 
@@ -52,29 +49,20 @@ func main() {
 // CreateExpenseHandler is the handler for the /create endpoint. It creates a new expense report by starting the CreateExpense workflow using temporal. Once the expense has been
 // created, it return the expenseID to the client in JSON format. This handler uses gin to communicate with the client.
 func CreateExpenseHandler(c *gin.Context) {
-	var newExpense ExpenseReport
-
-	err := c.BindJSON(&newExpense)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
+	var newExpense types.ExpenseReport
+	c.BindJSON(&newExpense)
 
 	newExpense.ExpenseID = time.Now().Format(time.RFC3339)
-	newExpense.State = "created"
-
-	mutex.Lock()
-	expenseData[newExpense.ExpenseID] = newExpense
-	mutex.Unlock()
 
 	workflowOptions := client.StartWorkflowOptions{
 		ID:        "createExpense_" + newExpense.ExpenseID,
 		TaskQueue: "expense",
 	}
 
-	we, err := temporal.ExecuteWorkflow(context.Background(), workflowOptions, expense.ExpenseWorkflow, newExpense)
+	we, err := temporal.ExecuteWorkflow(context.Background(), workflowOptions, expense.CreateExpenseWorkflow, newExpense)
 	if err != nil {
 		log.Fatalln("Unable to execute workflow", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err})
 	}
 
 	log.Println("Started workflow", "WorkflowID", we.GetID(), "RunID", we.GetRunID())

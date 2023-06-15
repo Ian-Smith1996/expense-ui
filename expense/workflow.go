@@ -1,20 +1,20 @@
 package expense
 
 import (
+	"my_module/types"
 	"time"
 
 	"go.temporal.io/sdk/workflow"
 )
 
-func ExpenseWorkflow(ctx workflow.Context, expenseID string) (result string, err error) {
+func CreateExpenseWorkflow(ctx workflow.Context, newExpense types.ExpenseReport) (result string, err error) {
 	// step 1, create new expense report
 	ao := workflow.ActivityOptions{
 		StartToCloseTimeout: 10 * time.Second,
 	}
 	ctx1 := workflow.WithActivityOptions(ctx, ao)
 	logger := workflow.GetLogger(ctx)
-
-	err = workflow.ExecuteActivity(ctx1, CreateExpenseActivity, expenseID).Get(ctx1, nil)
+	err = workflow.ExecuteActivity(ctx1, CreateExpenseActivity, &newExpense).Get(ctx1, nil)
 	if err != nil {
 		logger.Error("Failed to create expense report", "Error", err)
 		return "", err
@@ -46,6 +46,6 @@ func ExpenseWorkflow(ctx workflow.Context, expenseID string) (result string, err
 	// 	return "", err
 	// }
 
-	logger.Info("Workflow completed with expense payment completed.")
+	logger.Info("Expense created")
 	return "COMPLETED", nil
 }

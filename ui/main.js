@@ -1,34 +1,34 @@
 // Global array to store the expenses.
 let expenses = [];
 
-// Async method that runs an interval every 10 seconds to update the state of the expenses.
-async function run() {
-    // Send a request to localhost:8098/query every 10 seconds to update the state of the expenses.
-    // Also rerender the reports.
-    setInterval(() => {
-        if (expenses.length === 0) return;
-        expenses.forEach((expense, index) => {
-            fetch('http://localhost:8098/query', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ expenseID: expense.expenseID })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.state.toUpperCase() == "ACCEPTED" || data.state.toUpperCase() == "REJECTED") {
-                    // Remove the expense from the list at index
-                    expenses.splice(index, 1);
-                }
-                expense.state = data.state;
-            }).catch((error) => {
-                console.error('Error:', error);
-            });
-        });
-        renderReports();
-    }, 10000);
-}
+// // Async method that runs an interval every 10 seconds to update the state of the expenses.
+// async function run() {
+//     // Send a request to localhost:8098/query every 10 seconds to update the state of the expenses.
+//     // Also rerender the reports.
+//     setInterval(() => {
+//         if (expenses.length === 0) return;
+//         expenses.forEach((expense, index) => {
+//             fetch('http://localhost:8098/query', {
+//                 method: 'POST',
+//                 headers: { 'Content-Type': 'application/json' },
+//                 body: JSON.stringify({ expenseID: expense.expenseID })
+//             })
+//             .then(response => response.json())
+//             .then(data => {
+//                 if (data.state.toUpperCase() == "ACCEPTED" || data.state.toUpperCase() == "REJECTED") {
+//                     // Remove the expense from the list at index
+//                     expenses.splice(index, 1);
+//                 }
+//                 expense.state = data.state;
+//             }).catch((error) => {
+//                 console.error('Error:', error);
+//             });
+//         });
+//         renderReports();
+//     }, 10000);
+// }
 
-run();
+// run();
 
 // Event listener for the expense form when it is submitted
 document.getElementById("expenseForm").addEventListener("submit", function(e) {
@@ -60,7 +60,7 @@ document.getElementById("expenseForm").addEventListener("submit", function(e) {
         }
     }, 10000);
 
-    fetch('http://localhost:8098/create', {
+    fetch('http://localhost:8097/expense', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -107,10 +107,11 @@ function showExpenseDetails(index) {
         fetch('http://localhost:8098/query', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ expenseID: expense.expenseID })
         })
         .then(response => response.json())
         .then(data => {
+            expense.id = data.expenseID;
+            expense.date = data.date;
             expense.state = data.state;
             detailsDiv.querySelector('#state').innerHTML = `State: ${data.state}`;
         });
