@@ -1,3 +1,4 @@
+// Next steps: allow this microservice to resume where it left off after crashing (maybe using temporal? for now just use files)
 package main
 
 import (
@@ -7,6 +8,7 @@ import (
 	"net/http"
 	"sync"
 	"time"
+	//"io/ioutil"
 )
 
 type ExpenseResponse struct {
@@ -50,10 +52,7 @@ func CreateExpenseReport(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("Received and created expense with ID " + expenseData[newExpense.ExpenseID].ExpenseID)
 	mutex.Unlock()
 
-	response := ExpenseResponse{
-		ExpenseID: newExpense.ExpenseID,
-		State:     newExpense.State,
-	}
+	response := "SUCCEED"
 
 	json.NewEncoder(w).Encode(response)
 }
@@ -91,6 +90,8 @@ func QueryExpense(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
+	// check if file "expenseData.json" exists. If it does, load the data into expenseData using JSON decoder
+
 	http.HandleFunc("/create", CreateExpenseReport)
 	http.HandleFunc("/query", QueryExpense)
 	fmt.Println("Listening...")

@@ -59,7 +59,7 @@ func CreateExpenseHandler(c *gin.Context) {
 		TaskQueue: "expense",
 	}
 
-	we, err := temporal.ExecuteWorkflow(context.Background(), workflowOptions, expense.CreateExpenseWorkflow, &newExpense)
+	we, err := temporal.ExecuteWorkflow(context.Background(), workflowOptions, expense.CreateExpenseWorkflow, newExpense)
 	if err != nil {
 		log.Fatalln("Unable to execute workflow", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err})

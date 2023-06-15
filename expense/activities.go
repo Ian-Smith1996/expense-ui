@@ -3,6 +3,8 @@ package expense
 import (
 	"context"
 	"errors"
+	"my_module/types"
+	"strings"
 
 	//"fmt"
 	"io"
@@ -14,15 +16,15 @@ import (
 )
 
 var (
-	expenseServerPort = "8098"
+	expenseServerHostPort = "http://localhost:8098"
 )
 
-func CreateExpenseActivity(ctx context.Context, expenseID string) error {
-	if len(expenseID) == 0 {
+func CreateExpenseActivity(ctx context.Context, newExpense types.ExpenseReport) error {
+	if len(newExpense.ExpenseID) == 0 {
 		return errors.New("expense id is empty")
 	}
 
-	resp, err := http.Get(":" + expenseServerPort + "/create?is_api_call=true&id=" + expenseID)
+	resp, err := http.Get(expenseServerHostPort + "/create?is_api_call=true&id=" + newExpense.ExpenseID)
 	if err != nil {
 		return err
 	}
@@ -32,8 +34,8 @@ func CreateExpenseActivity(ctx context.Context, expenseID string) error {
 		return err
 	}
 
-	if string(body) == "SUCCEED" {
-		activity.GetLogger(ctx).Info("Expense created.", "ExpenseID", expenseID)
+	if strings.Contains(string(body), "SUCCEED") {
+		activity.GetLogger(ctx).Info("Expense created.", "ExpenseID", newExpense.ExpenseID)
 		return nil
 	}
 
